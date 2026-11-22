@@ -2,9 +2,17 @@
 
 Improve flight transitions, Odyle gathering, FP management, and route playback.
 
-> Status: Planned. Items are complete only after implementation and validation.
+> Status: Planned, with completed source fixes noted below. Live validation and packaging are tracked separately.
 
 ## P0 — Core Fixes
+
+### Skip nodes that disappear during approach
+
+- [x] Implemented in ESP 3.1: keep F9 running when the selected node becomes invalid during approach or immediately before F.
+- [x] Defer the unavailable node for 30 seconds and select another without counting a gathering attempt.
+- [x] Preserve flight cleanup and existing stops for input failures or unavailable player state.
+
+**Validation:** Controller tests and MSVC syntax checks passed. Live reproduction with another player taking the node and an updated release executable are still pending; this fix is not yet included in the published 3.1 archive.
 
 ### Record and replay mid-air flight cancellation
 
