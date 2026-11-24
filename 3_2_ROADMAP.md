@@ -1,101 +1,136 @@
-# ESP 3.2 Roadmap
+# BE 3.2 Roadmap
 
-Improve flight transitions, Odyle gathering, FP management, and route playback.
+Updated: 2026-11-24
 
-> Status: Planned, with completed source fixes noted below. Live validation and packaging are tracked separately.
+Focus: reliable flight transitions, Odyle gathering, FP recovery and route playback.
 
-## P0 — Core Fixes
+## Status guide
 
-### Skip nodes that disappear during approach
+- **Implemented in source:** code exists; this does not mean the public download contains it.
+- **Local test build:** included in a locally verified package; gameplay acceptance is separate.
+- **Pending implementation:** requirements are recorded, but the feature is not complete.
+- **Pending live validation:** still requires an in-game reproduction or acceptance test.
+- **Out of scope:** not planned for BE 3.2.
 
-- [x] Implemented in ESP 3.1: keep F9 running when the selected node becomes invalid during approach or immediately before F.
-- [x] Defer the unavailable node for 30 seconds and select another without counting a gathering attempt.
-- [x] Preserve flight cleanup and existing stops for input failures or unavailable player state.
+BE and BA2 are separate products. A correction in BA2 is not automatically present in BE.
 
-**Validation:** Controller tests and MSVC syntax checks passed. Live reproduction with another player taking the node and an updated release executable are still pending; this fix is not yet included in the published 3.1 archive.
+## Implemented in the BE 3.1 source baseline
 
-### Record and replay mid-air flight cancellation
+### Skip a resource that disappears during approach
 
-- [ ] Record V separately from confirmed touchdown.
-- [ ] Prevent falling segments from being saved as ordinary Fly waypoints.
-- [ ] Resume walking after touchdown is confirmed.
-- [ ] Preserve normal descent recorded by flying down to the ground.
-- [ ] Assess compatibility with older routes without guessing missing V actions.
+- [x] Keep F9 running if the selected node disappears during approach or immediately before F.
+- [x] Defer that node for 30 seconds and select another without counting a gathering attempt.
+- [x] Retain flight cleanup and stop conditions for input failures or unavailable player state.
+- [ ] Reproduce another player taking the node during approach in game.
+- [ ] Include and verify the correction in the next distributed executable.
 
-**Acceptance:** Walk → Takeoff → Fly → V mid-air → Descend → Land → Walk completes without freezing or unintended takeoff.
+**Status:** source implementation and controller/syntax checks completed. Inclusion in the current published 3.1 archive is not confirmed; do not describe it as a shipped 3.2 release.
 
-### Correct Odyle approach distance
+### Existing FP controls
 
-- [ ] Port the relevant approach-distance correction from Better A2.
-- [ ] Test approaches from below, from the side, and after FP recovery.
-- [ ] Keep ground-resource interaction distances unchanged.
+- [x] Separate minimum takeoff, low-FP landing and Resume FP settings.
+- [x] After low-FP or node-batch recovery, wait for Resume FP; batch recovery also respects the timer.
+- [x] Keep these F9 recovery rules separate from recorded route actions.
 
-**Acceptance:** The character reaches interaction range instead of stopping underneath the node.
+**Status:** existing baseline behavior, not a new 3.2 feature. It does not yet cover the distinct no-target landing policy below.
 
-### Land when F9 has no eligible target
+## P0 — Pending implementation
 
-- [ ] Allow a short repeat-search window after collection.
-- [ ] Request landing when no next target is found.
+### Record and replay mid-air V cancellation
+
+The reported freeze has been investigated, but the current recorder still relies on confirmed flight-state transitions; observing V is not yet a separately replayable cancellation action.
+
+- [ ] Record V cancellation separately from confirmed touchdown.
+- [ ] Distinguish falling segments from powered flight; do not save them as ordinary Fly waypoints.
+- [ ] Resume ground movement after confirmed touchdown without another unintended takeoff.
+- [ ] Preserve normal descent when the player flies all the way down to the ground.
+- [ ] Check old route compatibility; never invent a missing V action from coordinates alone.
+
+**Acceptance:** Walk -> Takeoff -> Fly -> V mid-air -> Descend -> Land -> Walk completes without freezing.
+
+### Correct Odyle interaction distance
+
+- [ ] Port the relevant BA2 close-approach correction into BE.
+- [ ] Verify approaches from below, from the side and after FP recovery.
+- [ ] Leave ground-resource interaction distances unchanged.
+
+**Status:** pending. The inspected BE baseline still uses the shared ground interaction distance for Odyle; the BA2 correction must not be marked complete here.
+
+**Acceptance:** the character reaches the actual interaction prompt rather than stopping beneath the node.
+
+### Land when F9 has no eligible next target
+
+- [ ] Allow a short bounded repeat-search window after gathering.
+- [ ] Request landing if no next eligible node is found.
 - [ ] Confirm touchdown and continue searching from the ground.
-- [ ] Bound failed landing attempts and display a clear status.
+- [ ] Bound failed landing attempts and show the reason for waiting or stopping.
 
-**Acceptance:** The character does not exhaust FP while hovering without a target.
+**Acceptance:** no indefinite hovering until FP is exhausted when no target is available.
 
-## P1 — FP Management and Detection
+## P1 — Pending implementation and investigation
 
-### Separate landing and recovery reasons
+### Separate no-target landing from low-FP recovery
 
-- [ ] After no-target landing, allow takeoff when a target appears and minimum takeoff FP is reached.
-- [ ] After low-FP landing, wait for the configured recovery threshold.
-- [ ] After a node-batch pause, require the timer and applicable FP conditions.
-- [ ] Display the current waiting or recovery reason.
-- [ ] Keep recorded route flight actions separate from nearby F9 recovery rules.
+- [ ] After no-target landing, allow departure when a node appears and minimum takeoff FP is available.
+- [ ] After low-FP landing, keep waiting for Resume FP.
+- [ ] After a node-batch pause, require both the timer and applicable FP conditions.
+- [ ] Display which condition is blocking departure.
+- [ ] Preserve the separation between F9 recovery and recorded route flight actions.
 
-### Investigate inconsistent F9 target detection
+**Boundary:** minimum takeoff FP is a departure condition, not a replacement for Resume FP after energy depletion.
 
-- [ ] Compare initial selection with selection during sustained operation.
-- [ ] Log rejection reasons: range, filters, area, allowed locations, FP, height, deferral, and stale data.
-- [ ] Change selection rules only where a discrepancy is confirmed.
+### Investigate inconsistent F9 selection
 
-## P1 — Gathering Features
+- [ ] Compare initial target selection with sustained operation under the same filters and area.
+- [ ] Explain rejections by range, resource selection, area, allowed locations, height, FP, temporary deferral or stale data.
+- [ ] Change selection rules only after a discrepancy has been reproduced.
+
+**Status:** unresolved feedback, not a confirmed single-cause detection defect.
 
 ### Support Odyle in Gather Along Route
 
-- [ ] Support airborne nodes using XYZ coordinates, corridor limits, route order, and FP.
-- [ ] Resume the route without skipping required recorded actions.
-- [ ] Validate mixed ground and air routes.
+- [ ] Extend the existing ground-oriented corridor selection to airborne resources.
+- [ ] Respect XYZ positions, corridor limits, forward route order and FP.
+- [ ] Rejoin the route without skipping required recorded actions.
+- [ ] Verify mixed ground/air routes and cancellation.
 
-### Handle Odyle-to-ground-resource transitions
+### Odyle-to-ground-resource transition
 
-- [ ] Approach the next ESP-selected ground resource.
+- [ ] Approach the next selected ground resource.
 - [ ] Request V at a full 3D XYZ distance of 4 meters or less.
-- [ ] Apply no separate safe-height check.
-- [ ] Confirm touchdown before gathering.
-- [ ] Bound unsuccessful transition attempts.
+- [ ] Apply no separate safe-height check, as requested.
+- [ ] Confirm touchdown before gathering and bound failed transitions.
 
-## Validation
+**Boundary:** the 4-meter trigger is the total 3D distance, not a horizontal-only or vertical-only measurement.
 
-- [ ] Mid-air V cancellation and normal descent to the ground.
-- [ ] Ground gathering, Odyle, and mixed routes.
-- [ ] Area and selected-location restrictions.
-- [ ] Target disappearance and reappearance.
-- [ ] Low FP, recovery, no-target landing, and failed landing.
-- [ ] Characters with different FP reserves under equivalent conditions.
-- [ ] Focus loss, pause, resume, and stop.
-- [ ] MOBFARM and counterattack regression checks.
+## Release acceptance — pending
 
-## Documentation and Packaging
+- [ ] Mid-air cancellation and normal descent to ground.
+- [ ] Ground gathering, Odyle and mixed routes.
+- [ ] Area/allowed-location filters and disappearing/reappearing targets.
+- [ ] Low FP, no-target landing, batch pauses, recovery and failed landing.
+- [ ] Characters with different FP reserves under comparable conditions.
+- [ ] Focus loss, pause, resume, stop and unavailable player/input state.
+- [ ] MOBFARM and counterattack regressions.
 
-- [ ] Update the English manual, USAGE guide, changelog, and language packs.
-- [ ] Prepare a compact update requiring the full ESP 3.1 base installation.
-- [ ] Include changed binaries, matching PDB, and required supporting files.
-- [ ] Exclude unchanged assets.
-- [ ] Verify preservation of settings, routes, and data-format compatibility.
+## Documentation and distribution
 
-## Out of Scope
+- [x] Prepare an illustrated English BE 3.1 reference manual using supplied screenshots.
+- [x] Choose the full 3.1 installation as the base for future compact updates.
+- [ ] Update the manual, USAGE text, changelog and translations for actual 3.2 changes.
+- [ ] Prepare and verify the compact 3.2 update against that base installation.
+- [ ] Include changed executable/support files and the matching PDB; omit unchanged assets.
+- [ ] Verify preservation of settings, routes and format compatibility.
+- [ ] Publish only after acceptance and a separate release decision.
 
-- Mandatory walking between every node.
-- Immediate takeoff for every target.
+**Status:** the distribution approach is agreed; a verified 3.2 update package has not been completed.
+
+## Not planned for BE 3.2
+
+- Mandatory walking between every pair of nodes.
+- Immediate takeoff for every target regardless of FP or route state.
 - A complete new terrain pathfinder.
 - Underwater gathering.
 - New maps.
+
+These exclusions are release scope decisions, not claims that the features are technically impossible. Other pending items above remain planned; they have not been silently cancelled.
